@@ -21,78 +21,19 @@ from pathlib import Path
 from typing import Optional
 
 # Third-party imports
-from colorama import init, Fore, Style
+from colorama import Fore, Style
+from colorama import init as init_colorama
 from tqdm import tqdm
 
 # Initialize colorama for cross-platform colored output
-init()
-
-# === FOLDER STRUCTURE CONFIGURATION ===
-INPUT_SUBFOLDERS = {
-    "video": [
-        "mov",
-        # "mp4",
-        # "avi",
-        # "mkv",
-        # "webm",
-        # "flv",
-        # "wmv",
-        # "m4v"
-    ],
-    "image": [
-        "jpg",
-        "jpeg",
-        "png",
-        # "gif",
-        # "bmp",
-        # "tiff",
-        # "webp",
-        "heic",
-        # "raw"
-    ],
-    # "audio": [
-    #     "mp3",
-    #     "wav",
-    #     "flac",
-    #     "ogg",
-    #     "aac",
-    #     "m4a",
-    #     "wma",
-    #     "aiff"
-    # ],
-}
-
-OUTPUT_SUBFOLDERS = {
-    # "video": [
-    #     "mp4",
-    #     "webm",
-    #     "avi",
-    #     "mkv",
-    #     "gif"
-    # ],
-    "image": [
-        "jpg",
-        "png",
-        # "webp",
-        # "gif",
-        # "bmp",
-        # "tiff"
-    ],
-    # "audio": [
-    #     "mp3",
-    #     "wav",
-    #     "flac",
-    #     "ogg",
-    #     "aac"
-    # ],
-}
+init_colorama()
 
 # Default number of worker threads
 DEFAULT_WORKERS = 4
 
 @dataclass
 class ConverterInfo:
-    """Information about a converter module."""
+    """Information about a discovered converter."""
     name: str
     description: str
     input_format: str
@@ -100,17 +41,17 @@ class ConverterInfo:
     input_category: str
     output_category: str
     module_path: Path
-    module: object = None
+    instance: object  # The converter instance
 
 def print_banner():
     """
     Print the application banner.
     """
     banner = f"""
-{Fore.CYAN}╔══════════════════════════════════════════════════════════════╗
-║                           {Fore.WHITE}C L O V E R{Fore.CYAN}                        ║
-║                   {Fore.YELLOW}Video • Image • Audio Converter{Fore.CYAN}            ║
-╚══════════════════════════════════════════════════════════════╝{Style.RESET_ALL}
+{Fore.CYAN}╔════════════════════════════════════╗
+║            {Fore.WHITE}C L O V E R{Fore.CYAN}             ║
+║   {Fore.YELLOW}Video • Image • Audio Converter{Fore.CYAN}  ║
+╚════════════════════════════════════╝{Style.RESET_ALL}
 """
     print(banner)
 
@@ -154,26 +95,66 @@ def create_folder_structure(base_path:Path, subfolders:dict, folder_type:str) ->
     
     return format_paths
 
-def setup_workspace() -> tuple[Path, Path, dict, dict]:
+def build_folder_maps(converters: list[ConverterInfo]) -> tuple[dict, dict]:
+    """
+    Build input and output folder structure maps from discovered converters.
+    
+    Args:
+        converters: List of discovered ConverterInfo objects
+        
+    Returns:
+        Tuple of (input_subfolders, output_subfolders) dicts mapping category -> [formats]
+    """
+    input_subfolders = {}
+    output_subfolders = {}
+    
+    for conv in converters:
+        # Build input folder map
+        if conv.input_category not in input_subfolders:
+            input_subfolders[conv.input_category] = []
+        if conv.input_format not in input_subfolders[conv.input_category]:
+            input_subfolders[conv.input_category].append(conv.input_format)
+        
+        # Build output folder map
+        if conv.output_category not in output_subfolders:
+            output_subfolders[conv.output_category] = []
+        if conv.output_format not in output_subfolders[conv.output_category]:
+            output_subfolders[conv.output_category].append(conv.output_format)
+    
+    return input_subfolders, output_subfolders
+
+
+def setup_workspace(converters: list[ConverterInfo]) -> tuple[Path, Path, dict, dict]:
     """
     Set up the workspace by getting a data path and creating in/out folder structures.
-    """
-    print(f"\n{Fore.WHITE}=== Workspace Setup ==={Style.RESET_ALL}\n")
+    Folder structure is built dynamically based on discovered converters.
     
-    print("Enter the path for your DATA folder:")
-    print(f"{Fore.CYAN}  Subfolders 'in/' and 'out/' will be created automatically{Style.RESET_ALL}")
-    data_path = get_folder_path("Data folder path:")
+    Args:
+        converters: List of discovered ConverterInfo objects
+    """
+    print(Fore.WHITE)
+    print('#######################')
+    print(f'### Workspace Setup ###')
+    print('#######################')
+    print(Style.RESET_ALL)
+    
+    print('Enter the path for your DATA folder:')
+    print(f'{Fore.CYAN}  Subfolders "in" and "out" will be created automatically{Style.RESET_ALL}')
+    data_path = get_folder_path('Data folder path:')
+    
+    # Build folder structure maps from discovered converters
+    input_subfolders, output_subfolders = build_folder_maps(converters)
     
     # Create in/out paths
-    input_path = data_path / "in"
-    output_path = data_path / "out"
+    input_path = data_path / 'in'
+    output_path = data_path / 'out'
     
-    input_formats = create_folder_structure(input_path, INPUT_SUBFOLDERS, "input")
-    output_formats = create_folder_structure(output_path, OUTPUT_SUBFOLDERS, "output")
+    input_formats = create_folder_structure(input_path, input_subfolders, 'input')
+    output_formats = create_folder_structure(output_path, output_subfolders, 'output')
     
-    print(f"\n{Fore.GREEN}✓ Workspace setup complete!{Style.RESET_ALL}")
-    print(f"  Input:  {Fore.CYAN}{input_path}{Style.RESET_ALL}")
-    print(f"  Output: {Fore.CYAN}{output_path}{Style.RESET_ALL}")
+    print(f'\n{Fore.GREEN}✓ Workspace setup complete!{Style.RESET_ALL}')
+    print(f'  Input:  {Fore.CYAN}{input_path}{Style.RESET_ALL}')
+    print(f'  Output: {Fore.CYAN}{output_path}{Style.RESET_ALL}')
     
     return input_path, output_path, input_formats, output_formats
 
@@ -182,21 +163,36 @@ def load_converter_module(module_path: Path) -> Optional[object]:
     Load a converter module from file.
     """
     try:
-        spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
+        # Build the module name with package context for relative imports
+        module_name = f'converters.{module_path.stem}'
+        spec = importlib.util.spec_from_file_location(
+            module_name,
+            module_path,
+            submodule_search_locations=[str(module_path.parent)]
+        )
         module = importlib.util.module_from_spec(spec)
+        
+        # Add to sys.modules so relative imports work
+        sys.modules[module_name] = module
+        
         spec.loader.exec_module(module)
         return module
     except Exception as e:
-        print(f"{Fore.RED}Error loading {module_path.name}: {e}{Style.RESET_ALL}")
+        print(f'{Fore.RED}Error loading {module_path.name}: {e}{Style.RESET_ALL}')
         return None
 
 def discover_converters() -> list[ConverterInfo]:
     """
     Discover all available converters by scanning the converters directory.
     
+    Looks for classes that inherit from BaseConverter and have the required
+    class attributes defined.
+    
     Returns:
-        List of ConverterInfo objects for converters with valid CONVERTER_INFO metadata.
+        List of ConverterInfo objects for valid converter classes.
     """
+    import inspect
+    
     converters_dir = Path(__file__).parent / "converters"
     converters = []
     
@@ -204,40 +200,51 @@ def discover_converters() -> list[ConverterInfo]:
         return converters
     
     for f in converters_dir.glob("*.py"):
-        if f.name.startswith("_"):
+        if f.name.startswith("_") or f.name == "base_converter.py":
             continue
         
         module = load_converter_module(f)
         if module is None:
             continue
         
-        # Check for CONVERTER_INFO metadata
-        if not hasattr(module, "CONVERTER_INFO"):
-            continue
-        
-        info = module.CONVERTER_INFO
-        
-        # Validate required fields
-        required_fields = ["name", "input_format", "output_format", "input_category", "output_category"]
-        if not all(field in info for field in required_fields):
-            print(f"{Fore.YELLOW}Warning: {f.name} missing required CONVERTER_INFO fields{Style.RESET_ALL}")
-            continue
-        
-        # Check for convert_file function (required for new-style converters)
-        if not hasattr(module, "convert_file"):
-            print(f"{Fore.YELLOW}Warning: {f.name} missing convert_file function{Style.RESET_ALL}")
-            continue
-        
-        converters.append(ConverterInfo(
-            name=info.get("name", f.stem),
-            description=info.get("description", ""),
-            input_format=info["input_format"].lower(),
-            output_format=info["output_format"].lower(),
-            input_category=info["input_category"].lower(),
-            output_category=info["output_category"].lower(),
-            module_path=f,
-            module=module,
-        ))
+        # Find all classes in the module that inherit from BaseConverter
+        for name, obj in inspect.getmembers(module, inspect.isclass):
+            # Skip classes not defined in this module
+            if obj.__module__ != module.__name__:
+                continue
+            
+            # Check if it inherits from a class named BaseConverter
+            # (using name check to avoid issues with different module contexts)
+            base_names = [base.__name__ for base in obj.__mro__]
+            if "BaseConverter" not in base_names:
+                continue
+            
+            # Validate required class attributes
+            required_attrs = ["name", "input_format", "output_format", "input_category", "output_category"]
+            missing = [attr for attr in required_attrs if not hasattr(obj, attr) or getattr(obj, attr) is None]
+            
+            if missing:
+                print(f"{Fore.YELLOW}Warning: {f.name}:{name} missing required attributes: {missing}{Style.RESET_ALL}")
+                continue
+            
+            # Instantiate the converter
+            try:
+                instance = obj()
+            except Exception as e:
+                print(f"{Fore.YELLOW}Warning: {f.name}:{name} failed to instantiate: {e}{Style.RESET_ALL}")
+                continue
+            
+            converters.append(ConverterInfo(
+                name=obj.name,
+                description=getattr(obj, "description", ""),
+                input_format=obj.input_format.lower(),
+                output_format=obj.output_format.lower(),
+                input_category=obj.input_category.lower(),
+                output_category=obj.output_category.lower(),
+                module_path=f,
+                instance=instance,
+            ))
+    
     return converters
 
 def get_all_formats(converters:list[ConverterInfo]) -> tuple[set,set]:
@@ -270,7 +277,6 @@ def list_files_by_format(base_path:Path, category:str, format_ext:str) -> list[P
     List all files in the specified format folder.
     """
     folder = base_path / category / format_ext
-    
     if not folder.exists():
         return []
     
@@ -281,17 +287,15 @@ def list_files_by_format(base_path:Path, category:str, format_ext:str) -> list[P
             files.append(f)
     
     # Also check common alternate extensions
-    alt_extensions = {
-        "jpg": [".jpeg"],
-        "heic": [".heif"],
+    alternative_extensions = {
+        'jpg': ['.jpeg'],
+        'heic': ['.heif'],
     }
-    
-    if format_ext in alt_extensions:
-        for alt in alt_extensions[format_ext]:
+    if format_ext in alternative_extensions:
+        for alt in alternative_extensions[format_ext]:
             for f in folder.iterdir():
                 if f.is_file() and f.suffix.lower() == alt:
                     files.append(f)
-    
     return files
 
 def convert_single_file(args:tuple) -> tuple[Path,bool,str]:
@@ -312,13 +316,11 @@ def convert_single_file(args:tuple) -> tuple[Path,bool,str]:
     except Exception as e:
         return (input_file, False, str(e))
 
-def run_conversion_multithreaded(
-    files:list[Path],
-    output_dir:Path,
-    output_ext:str,
-    converter:ConverterInfo,
-    num_workers:int=DEFAULT_WORKERS
-) -> tuple[int, int]:
+def run_conversion_multithreaded(files:list[Path],
+                                 output_dir:Path,
+                                 output_ext:str,
+                                 converter:ConverterInfo,
+                                 num_workers:int=DEFAULT_WORKERS) -> tuple[int, int]:
     """
     Run conversion on multiple files using a thread pool.
     
@@ -341,7 +343,7 @@ def run_conversion_multithreaded(
     tasks = []
     for input_file in files:
         output_file = output_dir / f"{input_file.stem}.{output_ext}"
-        tasks.append((input_file, output_file, converter.module.convert_file))
+        tasks.append((input_file, output_file, converter.instance.convert_file))
     
     success_count = 0
     fail_count = 0
@@ -506,25 +508,23 @@ if __name__ == "__main__":
         converters = discover_converters()
         
         if not converters:
-            print(f"{Fore.RED}No converters found in converters/ directory{Style.RESET_ALL}")
-            print(f"{Fore.CYAN}Ensure converters have CONVERTER_INFO metadata and convert_file function{Style.RESET_ALL}")
+            print(f'{Fore.RED}No converters found in converters/ directory{Style.RESET_ALL}')
+            print(f'{Fore.CYAN}Ensure converters have CONVERTER_INFO metadata and convert_file function{Style.RESET_ALL}')
             sys.exit(1)
         
-        print(f"Found {Fore.GREEN}{len(converters)}{Style.RESET_ALL} converter(s):")
-        for conv in converters:
-            print(f"  • {conv.name}: {conv.input_format} → {conv.output_format}")
+        print(f'Found {Fore.GREEN}{len(converters)}{Style.RESET_ALL} converter(s)')
         
-        # Setup workspace
-        input_path, output_path, _, _ = setup_workspace()
+        # Setup workspace (folder structure is built from discovered converters)
+        input_path, output_path, _, _ = setup_workspace(converters)
         
         # Main loop
         while True:
             format_selection_flow(converters, input_path, output_path)
             
-            cont = input(f"\n{Fore.GREEN}Run another conversion? (y/n): {Style.RESET_ALL}").strip().lower()
-            if cont not in ("y", "yes"):
-                print(f"\n{Fore.CYAN}Goodbye!{Style.RESET_ALL}\n")
+            cont = input(f'\n{Fore.GREEN}Run another conversion? (y/n): {Style.RESET_ALL}').strip().lower()
+            if cont not in ('y', 'yes'):
+                print(f'\n{Fore.CYAN}Goodbye!{Style.RESET_ALL}\n')
                 break
     except KeyboardInterrupt:
-        print(f"\n\n{Fore.YELLOW}Interrupted by user{Style.RESET_ALL}\n")
+        print(f'\n\n{Fore.YELLOW}Interrupted by user{Style.RESET_ALL}\n')
         sys.exit(0)

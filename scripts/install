@@ -18,9 +18,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="$PROJECT_ROOT/clover-venv"
 
-echo "=== clover Setup ==="
-echo "Project root: $PROJECT_ROOT"
-echo "Venv directory: $VENV_DIR"
 echo ""
 
 # Check for Python 3.11
@@ -62,11 +59,9 @@ echo "Installing media conversion dependencies..."
 pip install -r "$PROJECT_ROOT/requirements.txt"
 
 echo ""
-echo "=== System Dependencies Check ==="
 echo "For full functionality, ensure these are installed on your system:"
 echo "  - ffmpeg (sudo apt install ffmpeg / brew install ffmpeg)"
 echo "  - libmagic (sudo apt install libmagic1 / brew install libmagic)"
-echo ""
 
 # Check if ffmpeg is available
 if command -v ffmpeg &> /dev/null; then
@@ -77,9 +72,3 @@ else
 fi
 
 echo ""
-echo "=== Setup Complete ==="
-echo "Activate the environment with:"
-echo "  source $VENV_DIR/bin/activate"
-echo ""
-echo "Run the converter with:"
-echo "  python $PROJECT_ROOT/main.py"

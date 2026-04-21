@@ -14,6 +14,7 @@
 
 # Standard-library imports
 from abc import ABC, abstractmethod
+from typing import Optional
 
 class BaseConverter(ABC):
     """
@@ -21,22 +22,47 @@ class BaseConverter(ABC):
     
     Defines the interface that all converter modules must implement.
     """
-    converter_category:str            # e.g. "image", "video", "audio"
-    converter_info:str                # auxilliary info like a short description or special notes
-    from_type:str                     # e.g. "heic", "mov"
+    name:str                          # Human-readable name of the converter  
+    description:str                   # Short description of what the converter does
     includes_proprietary_formats:bool # True if the converter relies on proprietary formats or libraries
-    to_type:str                       # e.g. "jpg", "mp4"
+    input_category:str                # e.g. "image", "video", "audio"
+    input_format:str                  # e.g. "heic", "mov"
+    output_format:str                 # e.g. "jpg", "mp4"
+    output_category:str               # e.g. "image", "video", "audio"
     
     @abstractmethod
-    def convert_file(self, input_path:str, output_path:str) -> tuple[bool,str]:
+    def convert(self, input_data, output_data, **kwargs) -> tuple[bool, str]:
+        """
+        Convert input_data to output_data.
+        
+        This is the main conversion function that can be called by main.py for single-threaded processing.
+        It can also be called by convert_file for multithreaded processing.
+        
+        Args:
+            input_data: Path or data for the input file
+            output_data: Path or data for the output file
+            kwargs: Additional keyword arguments (e.g. quality)
+            
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        raise NotImplementedError('convert method must be implemented by subclasses')
+    
+    @abstractmethod
+    def convert_file(self,
+                     input_path:str,
+                     output_path:str,
+                     *,
+                     quality:Optional[int]=None) -> tuple[bool,str]:
         """
         Convert a single file from input_path to output_path.
         
         Args:
             input_path: Path to the input file
             output_path: Path for the output file
+            quality: Optional quality parameter (e.g. for JPEG compression)
             
         Returns:
-            Tuple of (success: bool, message: str)
+            Tuple of (success:bool, message:str)
         """
         raise NotImplementedError('convert_file method must be implemented by subclasses')
