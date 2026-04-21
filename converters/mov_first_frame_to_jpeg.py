@@ -21,8 +21,8 @@ from typing import Optional
 import cv2
 from colorama import Fore, Style
 
-# Local imports
-from .converters.base_converter import BaseConverter
+# # Local imports
+# from .converters.base_converter import BaseConverter
 
 # Used by main.py for automatic converter discovery
 CONVERTER_INFO = {

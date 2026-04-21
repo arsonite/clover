@@ -1,0 +1,18 @@
+# Copyright (C) 2024-2026 Burak Günaydin
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# "*"" applies the settings to all files in the repository.
+# "text=auto" instructs Git to automatically handle text files by normalizing their line endings to LF when
+# committing and converting them back to the native line endings for the user's platform when checking out.
+# This ensures consistent line endings across different platforms.
+# "eol=lf" specifies that line endings should be normalized to LF.
+* text=auto eol=lf

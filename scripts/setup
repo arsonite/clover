@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+# Copyright (C) 2024-2026 Burak Günaydin
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+VENV_DIR="$PROJECT_ROOT/clover-venv"
+
+echo "=== clover Setup ==="
+echo "Project root: $PROJECT_ROOT"
+echo "Venv directory: $VENV_DIR"
+echo ""
+
+# Check for Python 3.11
+if command -v python3.11 &> /dev/null; then
+    PYTHON_CMD="python3.11"
+elif command -v python3 &> /dev/null; then
+    PY_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+    if [[ "$PY_VERSION" == "3.11" ]]; then
+        PYTHON_CMD="python3"
+    else
+        echo "Warning: Python 3.11 not found, using python3 ($PY_VERSION)"
+        PYTHON_CMD="python3"
+    fi
+else
+    echo "Error: Python 3 not found. Please install Python 3.11"
+    exit 1
+fi
+
+echo "Using Python: $PYTHON_CMD ($($PYTHON_CMD --version))"
+echo ""
+
+# Create virtual environment
+if [[ -d "$VENV_DIR" ]]; then
+    echo "Removing existing venv..."
+    rm -rf "$VENV_DIR"
+fi
+
+echo "Creating virtual environment..."
+$PYTHON_CMD -m venv "$VENV_DIR"
+
+# Activate venv
+source "$VENV_DIR/bin/activate"
+
+echo "Upgrading pip..."
+pip install --upgrade pip
+
+echo ""
+echo "Installing media conversion dependencies..."
+pip install -r "$PROJECT_ROOT/requirements.txt"
+
+echo ""
+echo "=== System Dependencies Check ==="
+echo "For full functionality, ensure these are installed on your system:"
+echo "  - ffmpeg (sudo apt install ffmpeg / brew install ffmpeg)"
+echo "  - libmagic (sudo apt install libmagic1 / brew install libmagic)"
+echo ""
+
+# Check if ffmpeg is available
+if command -v ffmpeg &> /dev/null; then
+    echo "✓ ffmpeg found: $(ffmpeg -version 2>&1 | head -n1)"
+else
+    echo "✗ ffmpeg NOT found - video/audio conversion will not work"
+    echo "  Install with: sudo apt install ffmpeg"
+fi
+
+echo ""
+echo "=== Setup Complete ==="
+echo "Activate the environment with:"
+echo "  source $VENV_DIR/bin/activate"
+echo ""
+echo "Run the converter with:"
+echo "  python $PROJECT_ROOT/main.py"

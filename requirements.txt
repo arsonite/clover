@@ -1,0 +1,28 @@
+# VIDEO PROCESSING 
+opencv-python>=4.8.0          
+moviepy>=1.0.3                
+ffmpeg-python>=0.2.0          
+av>=10.0.0                    
+imageio[ffmpeg]>=2.31.0       
+
+# IMAGE PROCESSING 
+Pillow>=10.0.0                
+pillow-heif>=0.13.0           
+rawpy>=0.18.0                 
+imageio>=2.31.0               
+wand>=0.6.11                  
+
+# AUDIO PROCESSING 
+pydub>=0.25.1                 
+soundfile>=0.12.1             
+librosa>=0.10.0               
+audioread>=3.0.0              
+
+# FORMAT DETECTION 
+python-magic>=0.4.27          
+filetype>=1.2.0               
+
+# UTILITIES 
+tqdm>=4.65.0                  
+colorama>=0.4.6               
+pathlib>=1.0.1; python_version < "3.4" 

@@ -108,8 +108,8 @@ def print_banner():
     """
     banner = f"""
 {Fore.CYAN}╔══════════════════════════════════════════════════════════════╗
-║                      {Fore.WHITE}C L O V E R{Fore.CYAN}                 ║
-║              {Fore.YELLOW}Video • Image • Audio Converter{Fore.CYAN}    ║
+║                           {Fore.WHITE}C L O V E R{Fore.CYAN}                        ║
+║                   {Fore.YELLOW}Video • Image • Audio Converter{Fore.CYAN}            ║
 ╚══════════════════════════════════════════════════════════════╝{Style.RESET_ALL}
 """
     print(banner)
@@ -156,24 +156,24 @@ def create_folder_structure(base_path:Path, subfolders:dict, folder_type:str) ->
 
 def setup_workspace() -> tuple[Path, Path, dict, dict]:
     """
-    Set up the workspace by getting paths and creating folder structures.
+    Set up the workspace by getting a data path and creating in/out folder structures.
     """
     print(f"\n{Fore.WHITE}=== Workspace Setup ==={Style.RESET_ALL}\n")
     
-    print("Enter the path for your INPUT folder (source files):")
-    print(f"{Fore.CYAN}  This is where you'll place files to convert{Style.RESET_ALL}")
-    input_path = get_folder_path("Input folder path:")
+    print("Enter the path for your DATA folder:")
+    print(f"{Fore.CYAN}  Subfolders 'in/' and 'out/' will be created automatically{Style.RESET_ALL}")
+    data_path = get_folder_path("Data folder path:")
     
-    print()
-    
-    print("Enter the path for your OUTPUT folder (converted files):")
-    print(f"{Fore.CYAN}  This is where converted files will be saved{Style.RESET_ALL}")
-    output_path = get_folder_path("Output folder path:")
+    # Create in/out paths
+    input_path = data_path / "in"
+    output_path = data_path / "out"
     
     input_formats = create_folder_structure(input_path, INPUT_SUBFOLDERS, "input")
     output_formats = create_folder_structure(output_path, OUTPUT_SUBFOLDERS, "output")
     
     print(f"\n{Fore.GREEN}✓ Workspace setup complete!{Style.RESET_ALL}")
+    print(f"  Input:  {Fore.CYAN}{input_path}{Style.RESET_ALL}")
+    print(f"  Output: {Fore.CYAN}{output_path}{Style.RESET_ALL}")
     
     return input_path, output_path, input_formats, output_formats
 
