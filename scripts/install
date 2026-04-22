@@ -58,6 +58,8 @@ echo ""
 echo "Installing media conversion dependencies..."
 pip install -r "$PROJECT_ROOT/requirements.txt"
 
+copy "$PROJECT_ROOT/.env.template" "$PROJECT_ROOT/.env"
+
 echo ""
 echo "For full functionality, ensure these are installed on your system:"
 echo "  - ffmpeg (sudo apt install ffmpeg / brew install ffmpeg)"

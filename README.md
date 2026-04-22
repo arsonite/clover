@@ -1,7 +1,24 @@
-# clover
+<a name="readme-top"></a>
+
+<br />
+<div align="center">
+  <a href="https://github.com/arsonite/clover">
+    <img src="./files/media/icon/clover-logo-color.svg" alt="clover icon" width="80" height="80">
+  </a>
+
+<h3 align="center"><b>clover</b></h3>
+
+  <p align="center">
 
 A fast video, image and audio converter.
 Includes a CLI.
+<br />
+<a href="https://github.com/arsonite/clover/issues">Report Bug</a>
+·
+<a href="https://github.com/arsonite/clover/issues">Request Feature</a>
+
+  </p>
+</div>
 
 ## Setup
 

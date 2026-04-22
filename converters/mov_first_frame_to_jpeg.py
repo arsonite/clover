@@ -21,37 +21,22 @@ import cv2
 # Local imports
 from .base_converter import BaseConverter
 
-# Configuration
-JPEG_QUALITY = 95  # 0-100, higher = better quality, larger file
-
 class MovFirstFrameToJpegConverter(BaseConverter):
-    name="MOV First Frame to JPEG"
-    description="Extract the first frame from MOV videos as JPEG"
+    name='MOV First Frame to JPEG'
+    description='Extract the first frame from MOV videos as JPEG'
     includes_proprietary_formats=False
     input_category='video'
     input_format='mov'
     output_format='jpg'
     output_category='image'
     
-    def convert(self, input_data, output_data, quality=JPEG_QUALITY):
-        """
-        Convert a single MOV file to JPEG (first frame).
-        
-        Args:
-            input_data: Path to the input video file
-            output_data: Path for the output JPEG file
-            quality: JPEG quality (0-100)
-            
-        Returns:
-            Tuple of (success: bool, message: str)
-        """
-        return self.convert_file(input_data, output_data, quality=quality)
+    def convert(self, input_data, output_data):
+        pass
     
     def convert_file(self,
                      input_path:Path,
                      output_path:Path,
-                     *,
-                     quality:int=JPEG_QUALITY) -> tuple[bool,str]:
+                     quality:int=95) -> tuple[bool,str]:
         """
         Convert a single MOV file to JPEG (first frame).
         
@@ -67,18 +52,16 @@ class MovFirstFrameToJpegConverter(BaseConverter):
             Tuple of (success: bool, message: str)
         """
         try:
-            cap = cv2.VideoCapture(str(input_path))
-            
-            if not cap.isOpened():
+            capture = cv2.VideoCapture(str(input_path))
+            if not capture.isOpened():
                 return False, 'Cannot open video file'
             
             # Get video info
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
             
-            ret, frame = cap.read()
-            cap.release()
-            
+            ret, frame = capture.read()
+            capture.release()
             if not ret or frame is None:
                 return False, 'Cannot read frame'
             
@@ -89,8 +72,6 @@ class MovFirstFrameToJpegConverter(BaseConverter):
             
             if not success:
                 return False, 'Cannot save JPEG'
-            
             return True, f'{width}x{height}'
-            
         except Exception as e:
             return False, str(e)

@@ -31,6 +31,76 @@ init_colorama()
 # Default number of worker threads
 DEFAULT_WORKERS = 4
 
+# Path to .env file
+ENV_FILE_PATH = Path(__file__).parent / '.env'
+ENV_TEMPLATE_PATH = Path(__file__).parent / '.env.template'
+
+def read_env_workspace_path() -> Optional[Path]:
+    """
+    Read CLOVER_WORKSPACE_PATH from .env file if it exists.
+    
+    Returns:
+        Path object if valid path exists in .env, None otherwise.
+    """
+    if not ENV_FILE_PATH.exists():
+        return None
+    
+    try:
+        with open(ENV_FILE_PATH, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('CLOVER_WORKSPACE_PATH='):
+                    path_str = line.split('=', 1)[1].strip()
+                    if path_str:
+                        path = Path(path_str).expanduser().resolve()
+                        if path.exists():
+                            return path
+    except Exception:
+        pass
+    return None
+
+def write_env_workspace_path(workspace_path: Path) -> bool:
+    """
+    Write CLOVER_WORKSPACE_PATH to .env file.
+    Creates the file from template if it doesn't exist.
+    
+    Args:
+        workspace_path: The workspace path to save.
+        
+    Returns:
+        True if successful, False otherwise.
+    """
+    try:
+        # Read existing content or create from template
+        if ENV_FILE_PATH.exists():
+            with open(ENV_FILE_PATH, 'r') as f:
+                lines = f.readlines()
+        elif ENV_TEMPLATE_PATH.exists():
+            with open(ENV_TEMPLATE_PATH, 'r') as f:
+                lines = f.readlines()
+        else:
+            lines = ['CLOVER_WORKSPACE_PATH=\n']
+        
+        # Update or add CLOVER_WORKSPACE_PATH
+        found = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith('CLOVER_WORKSPACE_PATH='):
+                lines[i] = f'CLOVER_WORKSPACE_PATH={workspace_path}\n'
+                found = True
+                break
+        
+        if not found:
+            lines.append(f'CLOVER_WORKSPACE_PATH={workspace_path}\n')
+        
+        # Write back
+        with open(ENV_FILE_PATH, 'w') as f:
+            f.writelines(lines)
+        
+        return True
+    except Exception as e:
+        print(f'{Fore.YELLOW}Warning: Could not save workspace path to .env: {e}{Style.RESET_ALL}')
+        return False
+
 @dataclass
 class ConverterInfo:
     """Information about a discovered converter."""
@@ -73,27 +143,42 @@ def get_folder_path(prompt:str, must_exist:bool=False) -> Path:
             continue
         return path
 
-def create_folder_structure(base_path:Path, subfolders:dict, folder_type:str) -> dict:
+def create_folder_structure(base_path:Path, subfolders:dict, folder_type:str) -> tuple[dict, bool]:
     """
     Create the folder structure for input or output.
+    
+    Returns:
+        Tuple of (format_paths dict, created_any bool)
     """
     format_paths = {}
+    created_any = False
+    created_folders = []
     
-    print(f"\n{Fore.YELLOW}Creating {folder_type} folder structure in: {base_path}{Style.RESET_ALL}")
-    
-    base_path.mkdir(parents=True, exist_ok=True)
+    if not base_path.exists():
+        base_path.mkdir(parents=True, exist_ok=True)
+        created_any = True
     
     for category, formats in subfolders.items():
         category_path = base_path / category
-        category_path.mkdir(exist_ok=True)
+        if not category_path.exists():
+            category_path.mkdir(exist_ok=True)
+            created_any = True
         
         for fmt in formats:
             fmt_path = category_path / fmt
-            fmt_path.mkdir(exist_ok=True)
+            if not fmt_path.exists():
+                fmt_path.mkdir(exist_ok=True)
+                created_folders.append(fmt_path.relative_to(base_path))
+                created_any = True
             format_paths[fmt] = fmt_path
-            print(f"  {Fore.CYAN}✓{Style.RESET_ALL} {fmt_path.relative_to(base_path)}")
     
-    return format_paths
+    # Only print if we created new folders
+    if created_folders:
+        print(f"\n{Fore.YELLOW}Creating {folder_type} folder structure in: {base_path}{Style.RESET_ALL}")
+        for folder in created_folders:
+            print(f"  {Fore.CYAN}✓{Style.RESET_ALL} {folder}")
+    
+    return format_paths, created_any
 
 def build_folder_maps(converters: list[ConverterInfo]) -> tuple[dict, dict]:
     """
@@ -132,15 +217,25 @@ def setup_workspace(converters: list[ConverterInfo]) -> tuple[Path, Path, dict, 
     Args:
         converters: List of discovered ConverterInfo objects
     """
-    print(Fore.WHITE)
-    print('#######################')
-    print(f'### Workspace Setup ###')
-    print('#######################')
-    print(Style.RESET_ALL)
     
-    print('Enter the path for your DATA folder:')
-    print(f'{Fore.CYAN}  Subfolders "in" and "out" will be created automatically{Style.RESET_ALL}')
-    data_path = get_folder_path('Data folder path:')
+    # Check for saved workspace path
+    saved_path = read_env_workspace_path()
+    
+    if saved_path:
+        print(f'Using saved workspace path: {Fore.CYAN}{saved_path}{Style.RESET_ALL}')
+        data_path = saved_path
+    else:
+        print(Fore.WHITE)
+        print('#######################')
+        print(f'### Workspace Setup ###')
+        print('#######################')
+        print(Style.RESET_ALL)
+    
+        print('Enter the path for your DATA folder:')
+        print(f'{Fore.CYAN}  Subfolders "in" and "out" will be created automatically{Style.RESET_ALL}')
+        data_path = get_folder_path('Data folder path:')
+        write_env_workspace_path(data_path)
+        print(f'{Fore.GREEN}✓ Workspace path saved to .env{Style.RESET_ALL}')
     
     # Build folder structure maps from discovered converters
     input_subfolders, output_subfolders = build_folder_maps(converters)
@@ -149,12 +244,14 @@ def setup_workspace(converters: list[ConverterInfo]) -> tuple[Path, Path, dict, 
     input_path = data_path / 'in'
     output_path = data_path / 'out'
     
-    input_formats = create_folder_structure(input_path, input_subfolders, 'input')
-    output_formats = create_folder_structure(output_path, output_subfolders, 'output')
+    input_formats, created_input = create_folder_structure(input_path, input_subfolders, 'input')
+    output_formats, created_output = create_folder_structure(output_path, output_subfolders, 'output')
     
-    print(f'\n{Fore.GREEN}✓ Workspace setup complete!{Style.RESET_ALL}')
-    print(f'  Input:  {Fore.CYAN}{input_path}{Style.RESET_ALL}')
-    print(f'  Output: {Fore.CYAN}{output_path}{Style.RESET_ALL}')
+    # Only print completion message if we created new folders
+    if created_input or created_output:
+        print(f'\n{Fore.GREEN}✓ Workspace setup complete!{Style.RESET_ALL}')
+        print(f'  Input:  {Fore.CYAN}{input_path}{Style.RESET_ALL}')
+        print(f'  Output: {Fore.CYAN}{output_path}{Style.RESET_ALL}')
     
     return input_path, output_path, input_formats, output_formats
 
@@ -420,6 +517,8 @@ def format_selection_flow(converters:list[ConverterInfo], input_path:Path, outpu
                     "file_count": len(files),
                     "files": files,
                 })
+                
+    print("Select INPUT format:\n")
     
     # Remove duplicates
     seen = set()
@@ -434,9 +533,6 @@ def format_selection_flow(converters:list[ConverterInfo], input_path:Path, outpu
         print(f"{Fore.YELLOW}No input files found in any supported format.{Style.RESET_ALL}")
         print(f"{Fore.CYAN}Place files in the appropriate input folders and try again.{Style.RESET_ALL}")
         return
-    
-    # Select input format
-    print("Select INPUT format (source files):\n")
     
     def display_input(opt):
         return f"{opt['category']}/{opt['format']} ({opt['file_count']} files)"
@@ -467,7 +563,7 @@ def format_selection_flow(converters:list[ConverterInfo], input_path:Path, outpu
             "converter": conv,
         })
     
-    print(f"\nSelect OUTPUT format (for {selected_input['category']}/{selected_input['format']}):\n")
+    print(f"\nSelect OUTPUT format:\n")
     
     def display_output(opt):
         return f"{opt['category']}/{opt['format']} - {opt['converter'].name}"
@@ -485,7 +581,7 @@ def format_selection_flow(converters:list[ConverterInfo], input_path:Path, outpu
     
     try:
         num_workers = int(workers_input) if workers_input else DEFAULT_WORKERS
-        num_workers = max(1, min(num_workers, 32))  # Clamp between 1 and 32
+        num_workers = max(1, min(num_workers, 32)) # Clamp between 1 and 32
     except ValueError:
         num_workers = DEFAULT_WORKERS
     

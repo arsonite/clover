@@ -31,12 +31,13 @@ class BaseConverter(ABC):
     output_category:str               # e.g. "image", "video", "audio"
     
     @abstractmethod
-    def convert(self, input_data, output_data, **kwargs) -> tuple[bool, str]:
+    def convert(self, input_data:any, output_data:any, **kwargs) -> tuple[bool,str]:
         """
         Convert input_data to output_data.
         
         This is the main conversion function that can be called by main.py for single-threaded processing.
         It can also be called by convert_file for multithreaded processing.
+        It's for use in-memory.
         
         Args:
             input_data: Path or data for the input file
@@ -52,8 +53,7 @@ class BaseConverter(ABC):
     def convert_file(self,
                      input_path:str,
                      output_path:str,
-                     *,
-                     quality:Optional[int]=None) -> tuple[bool,str]:
+                     **kwargs) -> tuple[bool,str]:
         """
         Convert a single file from input_path to output_path.
         

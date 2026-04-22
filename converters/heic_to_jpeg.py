@@ -25,23 +25,22 @@ from .base_converter import BaseConverter
 # Register HEIF opener with Pillow
 register_heif_opener()
 
-# Configuration
-JPEG_QUALITY = 95 # 0-100, higher = better quality
-
 class HeicToJpegConverter(BaseConverter):
     name='(Apple) HEIC to JPEG'
-    description="Convert HEIC/HEIF images to JPEG format"
+    description='Convert HEIC/HEIF images to JPEG format'
     includes_proprietary_formats=True # HEIC relies on patented technology
     input_category='image'
     input_format='heic'
     output_format='jpg'
     output_category='image'
     
+    def convert(self, input_data, output_data):
+        pass
+    
     def convert_file(self,
                      input_path:Path,
                      output_path:Path,
-                     *,
-                     quality:int=JPEG_QUALITY) -> tuple[bool, str]:
+                     quality:int=95) -> tuple[bool, str]:
         """
         Convert a single HEIC file to JPEG.
         
